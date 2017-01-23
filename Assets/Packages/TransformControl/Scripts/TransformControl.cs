@@ -101,24 +101,28 @@ namespace mattatz.TransformControl {
 	        GetCircumference(SPHERE_RESOLUTION, out circumX, out circumY, out circumZ);
 	    }
 
+        /*
+        // Usage: Call Control() method in Update() loop 
 	    void Update() {
-	        if (Input.GetMouseButtonDown(0)) Pick();
-	        Track();
-
-	        switch (mode) {
-	            case TransformMode.Translate:
-	                Translate();
-	                break;
-
-	            case TransformMode.Rotate:
-	                Rotate();
-	                break;
-
-	            case TransformMode.Scale:
-	                Scale();
-	                break;
-	        }
+            Control();
 	    }
+        */
+
+        public void Control () {
+	        if (Input.GetMouseButtonDown(0)) {
+	            dragging = true;
+	            start = Input.mousePosition;
+	            prev = new TransformData(transform);
+                Pick();
+	        } else if (Input.GetMouseButtonUp(0)) {
+	            dragging = false;
+				selected = TransformDirection.None;
+	        }
+
+            if(dragging) {
+                Drag();
+            }
+        }
 
 	    public bool Pick () {
 	        return Pick(Input.mousePosition);
@@ -218,27 +222,6 @@ namespace mattatz.TransformControl {
 	        }
 	    }
 
-	    void Track() {
-	        if (Input.GetMouseButtonDown(0)) {
-	            dragging = true;
-	            start = Input.mousePosition;
-	            prev = new TransformData(transform);
-	        } else if (Input.GetMouseButtonUp(0)) {
-	            dragging = false;
-				selected = TransformDirection.None;
-	        }
-	    }
-
-		Vector3 ConvertScreenToWorld(Vector2 xy) {
-	        var cam = Camera.main;
-			var distance = (transform.position - cam.transform.position).magnitude;
-	        return cam.ScreenToWorldPoint(new Vector3(xy.x, xy.y, distance));
-		}
-	    
-	    Vector3 GetMouseDelta () {
-			return ConvertScreenToWorld(Input.mousePosition) - ConvertScreenToWorld(start);
-	    }
-
 		bool GetStartProj (out Vector3 proj) {
 			proj = default(Vector3);
 
@@ -263,8 +246,22 @@ namespace mattatz.TransformControl {
 			return 0f;
 		}
 
+        void Drag() {
+	        switch (mode) {
+	            case TransformMode.Translate:
+	                Translate();
+	                break;
+	            case TransformMode.Rotate:
+	                Rotate();
+	                break;
+	            case TransformMode.Scale:
+	                Scale();
+	                break;
+	        }
+        }
+
 	    void Translate() {
-	        if (!dragging || selected == TransformDirection.None) return;
+	        if (selected == TransformDirection.None) return;
 
 			var plane = new Plane((Camera.main.transform.position - prev.position).normalized, prev.position);
 			var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -291,7 +288,7 @@ namespace mattatz.TransformControl {
 		}
 
 	    void Rotate() {
-			if (!dragging || selected == TransformDirection.None) return;
+			if (selected == TransformDirection.None) return;
 
 			var matrix = global ? Matrix4x4.TRS(prev.position, Quaternion.identity, Vector3.one) : Matrix4x4.TRS(prev.position, prev.rotation, Vector3.one);
 
@@ -309,7 +306,7 @@ namespace mattatz.TransformControl {
 		}
 
 	    void Scale() {
-	        if (!dragging || selected == TransformDirection.None) return;
+	        if (selected == TransformDirection.None) return;
 
 			var plane = new Plane((Camera.main.transform.position - transform.position).normalized, prev.position);
 			var ray = Camera.main.ScreenPointToRay(Input.mousePosition);

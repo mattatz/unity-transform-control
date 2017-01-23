@@ -8,6 +8,10 @@ namespace mattatz.TransformControl.Demo {
 
 		[SerializeField] TransformControl control;
 
+        void Update() {
+            control.Control();
+        }
+
 		public void OnModeChanged(int index) {
 			switch(index) {
 			case 0:
