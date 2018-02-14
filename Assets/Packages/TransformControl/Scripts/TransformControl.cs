@@ -41,9 +41,9 @@ namespace mattatz.TransformControl {
 	        None, X, Y, Z
 	    };
 
-	    const string SHADER = "Hidden/Internal-Colored";
-	    const float THRESHOLD = 10f;
-	    const float HANDLER_SIZE = 0.2f;
+	    protected const string SHADER = "Hidden/Internal-Colored";
+	    protected const float THRESHOLD = 10f;
+	    protected const float HANDLER_SIZE = 0.2f;
 
 	    protected Material material {
 	        get {
@@ -58,7 +58,8 @@ namespace mattatz.TransformControl {
 	    }
 
 	    public TransformMode mode = TransformMode.Translate;
-	    public bool global;
+	    public bool global, useDistance;
+        public float distance = 10f;
 
 	    Color[] colors = new Color[] { Color.red, Color.green, Color.blue, Color.yellow };
 
@@ -142,10 +143,21 @@ namespace mattatz.TransformControl {
 	        return false;
 	    }
 
+        Matrix4x4 GetTranform()
+        {
+            float scale = 1f;
+            if(useDistance)
+            {
+                var d = (Camera.main.transform.position - transform.position).magnitude;
+                scale = d / distance;
+            }
+			return Matrix4x4.TRS(transform.position, global ? Quaternion.identity : transform.rotation, Vector3.one * scale);
+        }
+
 	    bool PickOrthogonal (Vector3 mouse) {
 	        var cam = Camera.main;
 
-			var matrix = global ? Matrix4x4.TRS(transform.position, Quaternion.identity, Vector3.one) : Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
+			var matrix = GetTranform();
 
 			var origin = cam.WorldToScreenPoint(matrix.MultiplyPoint(Vector3.zero)).xy();
 	        var right = cam.WorldToScreenPoint(matrix.MultiplyPoint(Vector3.right)).xy() - origin;
@@ -182,7 +194,7 @@ namespace mattatz.TransformControl {
 	    bool PickSphere(Vector3 mouse) {
 	        var cam = Camera.main;
 
-			var matrix = global ? Matrix4x4.TRS(transform.position, Quaternion.identity, Vector3.one) : Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
+			var matrix = GetTranform();
 
 	        var v = mouse.xy();
 			var x = circumX.Select(p => cam.WorldToScreenPoint(matrix.MultiplyPoint(p)).xy()).ToList();
@@ -290,7 +302,7 @@ namespace mattatz.TransformControl {
 	    void Rotate() {
 			if (selected == TransformDirection.None) return;
 
-			var matrix = global ? Matrix4x4.TRS(prev.position, Quaternion.identity, Vector3.one) : Matrix4x4.TRS(prev.position, prev.rotation, Vector3.one);
+			var matrix = Matrix4x4.TRS(prev.position, global ? Quaternion.identity : prev.rotation,  Vector3.one);
 
 			var cur = Input.mousePosition.xy();
 			var cam = Camera.main;
@@ -347,12 +359,7 @@ namespace mattatz.TransformControl {
 
 	        GL.PushMatrix();
 
-	        // apply no scaling
-	        if(global) {
-	            GL.MultMatrix(Matrix4x4.TRS(transform.position, Quaternion.identity, Vector3.one));
-	        } else {
-	            GL.MultMatrix(Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one));
-	        }
+            GL.MultMatrix(GetTranform());
 
 	        switch (mode) {
 	            case TransformMode.Translate:
